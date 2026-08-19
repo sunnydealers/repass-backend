@@ -252,6 +252,56 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 			json.NewEncoder(w).Encode(req)
 			return
 		}
+
+		if r.Method == "PUT" {
+			parts := strings.Split(path, "/")
+			if len(parts) >= 4 {
+				id := parts[3]
+				var req PasswordEntry
+				json.NewDecoder(r.Body).Decode(&req)
+				
+				for i, p := range passwords {
+					if p.Id == id {
+						if p.UserId != claims.Id && (claims.Role != "Admin" || p.Category != "Organization") {
+							w.WriteHeader(403)
+							return
+						}
+						
+						passwords[i].Title = req.Title
+						passwords[i].Username = req.Username
+						passwords[i].Password = req.Password
+						passwords[i].Notes = req.Notes
+						passwords[i].Category = req.Category
+						
+						json.NewEncoder(w).Encode(passwords[i])
+						return
+					}
+				}
+				w.WriteHeader(404)
+				return
+			}
+		}
+
+		if r.Method == "DELETE" {
+			parts := strings.Split(path, "/")
+			if len(parts) >= 4 {
+				id := parts[3]
+				for i, p := range passwords {
+					if p.Id == id {
+						if p.UserId != claims.Id && (claims.Role != "Admin" || p.Category != "Organization") {
+							w.WriteHeader(403)
+							return
+						}
+						
+						passwords = append(passwords[:i], passwords[i+1:]...)
+						json.NewEncoder(w).Encode(map[string]bool{"success": true})
+						return
+					}
+				}
+				w.WriteHeader(404)
+				return
+			}
+		}
 	}
 
 	w.WriteHeader(404)
