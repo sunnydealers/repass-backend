@@ -1,0 +1,58 @@
+[
+  {
+    "id": "1",
+    "name": "Admin ",
+    "username": "ADMIN",
+    "password": "Admin1",
+    "role": "Admin",
+    "status": "Active"
+  },
+  {
+    "id": "1786721431573",
+    "name": "USER",
+    "username": "Shrikanteshwar ",
+    "password": "Reddyexperts",
+    "role": "User",
+    "status": "Active"
+  },
+  {
+    "id": "1786721478642",
+    "name": "USER ",
+    "username": "Soumya",
+    "password": "reddyexperts",
+    "role": "User",
+    "status": "Active"
+  },
+  {
+    "id": "1786721541048",
+    "name": "USER",
+    "username": "Nimmi",
+    "password": "reddyexperts",
+    "role": "User",
+    "status": "Active"
+  },
+  {
+    "id": "1786721581978",
+    "name": "USER ",
+    "username": "Siddhartha",
+    "password": "reddyexperts",
+    "role": "User",
+    "status": "Active"
+  },
+  {
+    "id": "1786721636493",
+    "name": "USER",
+    "username": "Tejashwini",
+    "password": "reddyexperts",
+    "role": "User",
+    "status": "Active"
+  },
+  {
+    "id": "1786721808506",
+    "name": "USER",
+    "username": "Bhargavi",
+    "password": "reddyexperts",
+    "role": "User",
+    "status": "Active"
+  }
+]
