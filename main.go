@@ -24,6 +24,10 @@ func main() {
 			w.Write([]byte(`{"status": "ok", "message": "Repass Backend is running!"}`))
 			return
 		}
+		if r.URL.Path == "/favicon.ico" {
+			w.WriteHeader(http.StatusNoContent)
+			return
+		}
 		http.NotFound(w, r)
 	})
 
