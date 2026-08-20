@@ -218,19 +218,11 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 		token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 		tokenString, _ := token.SignedString(jwtSecret)
 
-		http.SetCookie(w, &http.Cookie{
-			Name:     "auth_token",
-			Value:    tokenString,
-			Expires:  expirationTime,
-			Path:     "/",
-			HttpOnly: true,
-			SameSite: http.SameSiteNoneMode,
-			Secure:   true,
-		})
+		cookieValue := fmt.Sprintf("auth_token=%s; Expires=%s; Path=/; HttpOnly; Secure; SameSite=None; Partitioned", 
+			tokenString, expirationTime.Format(http.TimeFormat))
+		w.Header().Add("Set-Cookie", cookieValue)
 
-		json.NewEncoder(w).Encode(map[string]interface{}{
-			"success": true,
-			"user": map[string]interface{}{
+		json.NewEncoder(w).Encode(map[string]interface{}{"success": true, "user": map[string]interface{}{
 				"id": foundUser.Id, "name": foundUser.Name, "username": foundUser.Username, "role": role,
 			},
 		})
@@ -238,15 +230,9 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if strings.HasPrefix(path, "/api/auth/logout") && r.Method == "POST" {
-		http.SetCookie(w, &http.Cookie{
-			Name:     "auth_token",
-			Value:    "",
-			Expires:  time.Unix(0, 0),
-			Path:     "/",
-			HttpOnly: true,
-			SameSite: http.SameSiteNoneMode,
-			Secure:   true,
-		})
+		cookieValue := fmt.Sprintf("auth_token=; Expires=%s; Path=/; HttpOnly; Secure; SameSite=None; Partitioned", 
+			time.Unix(0, 0).Format(http.TimeFormat))
+		w.Header().Add("Set-Cookie", cookieValue)
 		json.NewEncoder(w).Encode(map[string]interface{}{"success": true})
 		return
 	}
