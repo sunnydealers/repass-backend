@@ -7,7 +7,6 @@ import (
 	"time"
 	"fmt"
 	"bytes"
-	"io"
 	"os"
 	"sync"
 	"embed"
