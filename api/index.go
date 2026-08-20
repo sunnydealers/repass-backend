@@ -6,6 +6,9 @@ import (
 	"strings"
 	"time"
 	"fmt"
+	"bytes"
+	"io"
+	"os"
 	"sync"
 	"embed"
 	"github.com/golang-jwt/jwt/v5"
@@ -43,6 +46,50 @@ var (
 	loaded    bool
 )
 
+func loadFromKV(key string, target interface{}) bool {
+	url := os.Getenv("KV_REST_API_URL")
+	token := os.Getenv("KV_REST_API_TOKEN")
+	if url == "" || token == "" {
+		return false
+	}
+	req, _ := http.NewRequest("GET", url+"/get/"+key, nil)
+	req.Header.Add("Authorization", "Bearer "+token)
+	client := &http.Client{Timeout: 5 * time.Second}
+	resp, err := client.Do(req)
+	if err != nil || resp.StatusCode != 200 {
+		return false
+	}
+	defer resp.Body.Close()
+	var res struct {
+		Result string `json:"result"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&res); err != nil || res.Result == "" || res.Result == "null" {
+		return false
+	}
+	if err := json.Unmarshal([]byte(res.Result), target); err != nil {
+		return false
+	}
+	return true
+}
+
+func saveToKV(key string, data interface{}) {
+	url := os.Getenv("KV_REST_API_URL")
+	token := os.Getenv("KV_REST_API_TOKEN")
+	if url == "" || token == "" {
+		return
+	}
+	b, _ := json.Marshal(data)
+	payload, _ := json.Marshal([]string{"SET", key, string(b)})
+	req, _ := http.NewRequest("POST", url, bytes.NewBuffer(payload))
+	req.Header.Add("Authorization", "Bearer "+token)
+	req.Header.Add("Content-Type", "application/json")
+	client := &http.Client{Timeout: 5 * time.Second}
+	resp, _ := client.Do(req)
+	if resp != nil {
+		resp.Body.Close()
+	}
+}
+
 func initStore() {
 	if loaded {
 		return
@@ -53,14 +100,18 @@ func initStore() {
 		return
 	}
 	
-	uData, err := content.ReadFile("data/users.json")
-	if err == nil {
-		json.Unmarshal(uData, &users)
+	if !loadFromKV("users", &users) {
+		uData, err := content.ReadFile("data/users.json")
+		if err == nil {
+			json.Unmarshal(uData, &users)
+		}
 	}
 	
-	pData, err := content.ReadFile("data/passwords.json")
-	if err == nil {
-		json.Unmarshal(pData, &passwords)
+	if !loadFromKV("passwords", &passwords) {
+		pData, err := content.ReadFile("data/passwords.json")
+		if err == nil {
+			json.Unmarshal(pData, &passwords)
+		}
 	}
 	
 	loaded = true
@@ -254,6 +305,7 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 			req.UserId = claims.Id
 			req.CreatedAt = time.Now().UnixMilli()
 			passwords = append(passwords, req)
+			saveToKV("passwords", passwords)
 			w.WriteHeader(201)
 			json.NewEncoder(w).Encode(req)
 			return
@@ -279,6 +331,7 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 						passwords[i].Notes = req.Notes
 						passwords[i].Category = req.Category
 						
+						saveToKV("passwords", passwords)
 						json.NewEncoder(w).Encode(passwords[i])
 						return
 					}
@@ -300,6 +353,7 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 						}
 						
 						passwords = append(passwords[:i], passwords[i+1:]...)
+						saveToKV("passwords", passwords)
 						json.NewEncoder(w).Encode(map[string]bool{"success": true})
 						return
 					}
@@ -333,6 +387,7 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 			req.Id = fmt.Sprintf("%d", time.Now().UnixNano())
 			req.Status = "Active"
 			users = append(users, req)
+			saveToKV("users", users)
 			w.WriteHeader(201)
 			json.NewEncoder(w).Encode(req)
 			return
@@ -349,6 +404,7 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 					if req.Username != "" { users[i].Username = req.Username }
 					if req.Role != "" { users[i].Role = req.Role }
 					if req.Status != "" { users[i].Status = req.Status }
+					saveToKV("users", users)
 					json.NewEncoder(w).Encode(users[i])
 					return
 				}
@@ -365,6 +421,7 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 			for i, u := range users {
 				if u.Id == id {
 					users[i].Password = req.NewPassword
+					saveToKV("users", users)
 					json.NewEncoder(w).Encode(map[string]bool{"success": true})
 					return
 				}
@@ -378,6 +435,7 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 			for i, u := range users {
 				if u.Id == id {
 					users = append(users[:i], users[i+1:]...)
+					saveToKV("users", users)
 					json.NewEncoder(w).Encode(map[string]bool{"success": true})
 					return
 				}
