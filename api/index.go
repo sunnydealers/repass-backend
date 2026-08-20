@@ -106,6 +106,9 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 
 	initStore()
 	path := r.URL.Path
+	if route := r.URL.Query().Get("route"); route != "" {
+		path = "/api/" + route
+	}
 
 	w.Header().Set("Content-Type", "application/json")
 
