@@ -40,8 +40,8 @@ type PasswordEntry struct {
 }
 
 var (
-	users     []User
-	passwords []PasswordEntry
+	users     = []User{}
+	passwords = []PasswordEntry{}
 	storeMu   sync.Mutex
 	loaded    bool
 )
@@ -282,13 +282,15 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 		defer storeMu.Unlock()
 
 		if r.Method == "GET" {
-			var filtered []PasswordEntry
-			for _, p := range passwords {
-				if claims.Role == "Admin" {
+			filtered := []PasswordEntry{}
+			if claims.Role == "Admin" {
+				for _, p := range passwords {
 					if p.Category == "Organization" || (p.UserId == claims.Id && p.Category == "Personal") {
 						filtered = append(filtered, p)
 					}
-				} else {
+				}
+			} else {
+				for _, p := range passwords {
 					if p.UserId == claims.Id {
 						filtered = append(filtered, p)
 					}
