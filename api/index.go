@@ -6,10 +6,13 @@ import (
 	"strings"
 	"time"
 	"fmt"
-	"os"
 	"sync"
+	"embed"
 	"github.com/golang-jwt/jwt/v5"
 )
+
+//go:embed data/users.json data/passwords.json
+var content embed.FS
 
 var jwtSecret = []byte("super-secret-jwt-key-replace-in-prod")
 
@@ -50,12 +53,12 @@ func initStore() {
 		return
 	}
 	
-	uData, err := os.ReadFile("data/users.json")
+	uData, err := content.ReadFile("data/users.json")
 	if err == nil {
 		json.Unmarshal(uData, &users)
 	}
 	
-	pData, err := os.ReadFile("data/passwords.json")
+	pData, err := content.ReadFile("data/passwords.json")
 	if err == nil {
 		json.Unmarshal(pData, &passwords)
 	}
