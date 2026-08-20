@@ -310,6 +310,83 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	if strings.HasPrefix(path, "/api/users") {
+		storeMu.Lock()
+		defer storeMu.Unlock()
+
+		if claims.Role != "Admin" {
+			w.WriteHeader(403)
+			json.NewEncoder(w).Encode(map[string]string{"error": "Admin access required"})
+			return
+		}
+
+		parts := strings.Split(path, "/")
+		
+		if r.Method == "GET" && len(parts) == 3 {
+			json.NewEncoder(w).Encode(users)
+			return
+		}
+
+		if r.Method == "POST" && len(parts) == 3 {
+			var req User
+			json.NewDecoder(r.Body).Decode(&req)
+			req.Id = fmt.Sprintf("%d", time.Now().UnixNano())
+			req.Status = "Active"
+			users = append(users, req)
+			w.WriteHeader(201)
+			json.NewEncoder(w).Encode(req)
+			return
+		}
+
+		if r.Method == "PUT" && len(parts) == 4 {
+			id := parts[3]
+			var req User
+			json.NewDecoder(r.Body).Decode(&req)
+			
+			for i, u := range users {
+				if u.Id == id {
+					if req.Name != "" { users[i].Name = req.Name }
+					if req.Username != "" { users[i].Username = req.Username }
+					if req.Role != "" { users[i].Role = req.Role }
+					if req.Status != "" { users[i].Status = req.Status }
+					json.NewEncoder(w).Encode(users[i])
+					return
+				}
+			}
+			w.WriteHeader(404)
+			return
+		}
+
+		if r.Method == "POST" && len(parts) == 5 && parts[4] == "reset-password" {
+			id := parts[3]
+			var req struct { NewPassword string `json:"newPassword"` }
+			json.NewDecoder(r.Body).Decode(&req)
+			
+			for i, u := range users {
+				if u.Id == id {
+					users[i].Password = req.NewPassword
+					json.NewEncoder(w).Encode(map[string]bool{"success": true})
+					return
+				}
+			}
+			w.WriteHeader(404)
+			return
+		}
+
+		if r.Method == "DELETE" && len(parts) == 4 {
+			id := parts[3]
+			for i, u := range users {
+				if u.Id == id {
+					users = append(users[:i], users[i+1:]...)
+					json.NewEncoder(w).Encode(map[string]bool{"success": true})
+					return
+				}
+			}
+			w.WriteHeader(404)
+			return
+		}
+	}
+
 	w.WriteHeader(404)
 	json.NewEncoder(w).Encode(map[string]string{"error": "Not found"})
 }
